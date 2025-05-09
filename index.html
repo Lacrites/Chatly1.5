@@ -1,35 +1,42 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chatly v1.5</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatly v1.0</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="start-section">
-    <h1>Bienvenido a Chatly</h1>
-    <input id="myId" placeholder="Tu ID" />
-    <input id="myName" placeholder="Tu nombre" />
-    <button onclick="start()">Comenzar</button>
-  </div>
+    <!-- Pantalla inicial para seleccionar el ID y nombre -->
+    <div id="start-screen">
+        <input type="text" id="user-id" placeholder="Escribe tu ID">
+        <input type="text" id="user-name" placeholder="Escribe tu nombre">
+        <button id="start-btn">Iniciar</button>
+    </div>
 
-  <div id="chat-section" style="display: none;">
-    <p><strong>Tu ID:</strong> <span id="peer-id"></span></p>
-    <input id="connectId" placeholder="ID del otro usuario" />
-    <button onclick="connect()">Conectar</button>
+    <!-- Contenedor del chat -->
+    <div id="chat-container" style="display:none;">
+        <div id="typing-indicator" style="display:none;">El otro usuario está escribiendo...</div>
+        <div id="messages" class="messages"></div>
 
-    <div id="messages" class="messages"></div>
-    <input id="message" placeholder="Escribí tu mensaje" />
-    <button onclick="sendMessage()">Enviar mensaje</button>
-    <button onclick="sendBuzz()">🔔 Enviar zumbido</button>
-    <button onclick="capturePhoto()">📷 Enviar foto</button>
-    <button onclick="enableCamera()">🎥 Enfocar momento</button>
-    <video id="video" autoplay playsinline style="display: none;"></video>
-    <canvas id="canvas" style="display: none;"></canvas>
-  </div>
+        <!-- Entrada para mensaje -->
+        <div id="message-input-container">
+            <input type="text" id="message-input" placeholder="Escribe un mensaje..." autocomplete="off">
+            <button class="send-btn" id="send-btn">Enviar</button>
+            <button class="send-btn" id="buzz-btn">Zumbido</button>
+        </div>
 
-  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-  <script src="script.js"></script>
+        <!-- Botón para cámara -->
+        <button id="focus-btn">Enfocar momento</button>
+    </div>
+
+    <!-- Cámara -->
+    <div id="camera-container" style="display:none;">
+        <video id="video" width="320" height="240" autoplay></video>
+        <button id="capture-btn">Capturar Foto</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.3.1/dist/peerjs.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
