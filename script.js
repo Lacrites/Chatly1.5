@@ -1,152 +1,137 @@
-let peer;
-let conn;
-let myName = "";
-let remoteName = "Desconocido";
-let cameraStream = null;
+// Inicialización de variables
+const startScreen = document.getElementById('start-screen');
+const chatContainer = document.getElementById('chat-container');
+const messageInput = document.getElementById('message-input');
+const sendBtn = document.getElementById('send-btn');
+const buzzBtn = document.getElementById('buzz-btn');
+const messagesContainer = document.getElementById('messages');
+const typingIndicator = document.getElementById('typing-indicator');
+const focusBtn = document.getElementById('focus-btn');
+const video = document.getElementById('video');
+const captureBtn = document.getElementById('capture-btn');
+const cameraContainer = document.getElementById('camera-container');
+const userIdInput = document.getElementById('user-id');
+const userNameInput = document.getElementById('user-name');
 
-function start() {
-  const myId = document.getElementById('myId').value;
-  myName = document.getElementById('myName').value;
+// Variables de PeerJS
+let peer, conn;
 
-  if (!myId || !myName) {
-    alert("Escribí un ID y un nombre para mostrar");
-    return;
-  }
+// Detectar cuando el usuario está escribiendo
+let typingTimeout;
+messageInput.addEventListener('input', () => {
+    // Enviar que el usuario está escribiendo
+    conn.send({ type: "typing", data: true });
+    
+    // Mostrar el indicador de "escribiendo..."
+    typingIndicator.style.display = "block";
+    
+    // Ocultar después de 1 segundo de inactividad
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        typingIndicator.style.display = "none";
+    }, 1000);
+});
 
-  peer = new Peer(myId);
+// Función para enviar el mensaje
+sendBtn.addEventListener('click', () => {
+    sendMessage(messageInput.value);
+    messageInput.value = ''; // Limpiar el campo de entrada
+});
 
-  peer.on('open', id => {
-    document.getElementById('peer-id').textContent = id;
-    document.getElementById('start-section').style.display = 'none';
-    document.getElementById('chat-section').style.display = 'block';
-  });
+// Función para enviar el mensaje y agregarlo al chat
+function sendMessage(message) {
+    const messageTime = new Date();
+    const formattedTime = messageTime.toLocaleString();  // Ej. 10:30 AM - 09/05/2025
+    
+    const messageElement = document.createElement("div");
+    messageElement.classList.add("message");
+    
+    const content = document.createElement("div");
+    content.classList.add("message-content");
+    content.textContent = message;
 
-  peer.on('connection', connection => {
-    conn = connection;
-    setupConnection();
-  });
+    const time = document.createElement("div");
+    time.classList.add("message-time");
+    time.textContent = formattedTime;
 
-  document.getElementById('message').addEventListener('keydown', e => {
-    if (e.key === 'Enter') sendMessage();
-  });
+    messageElement.appendChild(content);
+    messageElement.appendChild(time);
+    
+    messagesContainer.appendChild(messageElement);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;  // Desplazar hacia abajo
 }
 
-function connect() {
-  const otherId = document.getElementById('connectId').value;
-  if (!peer) {
-    alert("Primero iniciá tu Peer con un ID.");
-    return;
-  }
-
-  conn = peer.connect(otherId);
-  conn.on('open', () => {
-    conn.send({ type: "name", value: myName });
-  });
-  setupConnection();
-}
-
-function setupConnection() {
-  conn.on('data', data => {
-    if (data.type === "name") {
-      remoteName = data.value;
-    } else if (data.type === "msg") {
-      addMessage(`${remoteName}: ${data.value}`);
-    } else if (data.type === "buzz") {
-      triggerBuzz();  // Solo el receptor ejecutará esta función
-    } else if (data.type === "img") {
-      showImage(data.value, remoteName);
+// Recibir datos del otro usuario (mensaje o "escribiendo...")
+conn.on('data', (data) => {
+    if (data.type === "typing" && data.data) {
+        typingIndicator.style.display = "block";
+    } else if (data.type === "message") {
+        sendMessage(data.message);
     }
-  });
+});
 
-  conn.on('open', () => {
-    conn.send({ type: "name", value: myName });
-  });
-}
+// Función para iniciar la conexión cuando el usuario presiona "Iniciar"
+document.getElementById('start-btn').addEventListener('click', () => {
+    const userId = userIdInput.value;
+    const userName = userNameInput.value;
+    
+    if (userId && userName) {
+        startScreen.style.display = "none";
+        chatContainer.style.display = "block";
 
-function sendMessage() {
-  const msgInput = document.getElementById('message');
-  const msg = msgInput.value;
-  if (conn && msg.trim() !== '') {
-    conn.send({ type: "msg", value: msg });
-    addMessage(`Yo (${myName}): ${msg}`);
-    msgInput.value = '';
-  }
-}
+        // Crear el objeto Peer
+        peer = new Peer(userId);
+        
+        peer.on('open', (id) => {
+            console.log("Conexión establecida. Tu ID: " + id);
+        });
 
-function addMessage(msg) {
-  const msgBox = document.getElementById('messages');
-  const div = document.createElement('div');
-  div.textContent = msg;
-  msgBox.appendChild(div);
-  msgBox.scrollTop = msgBox.scrollHeight;
-}
+        peer.on('connection', (connection) => {
+            conn = connection;
+            conn.on('open', () => {
+                console.log('Conexión con el otro usuario establecida');
+            });
+        });
 
-function enableCamera() {
-  const video = document.getElementById('video');
+        // Conectar con el otro usuario
+        peer.on('call', (call) => {
+            // Responder al llamado (si tienes video)
+            call.answer(window.localStream);
+        });
+    } else {
+        alert('Por favor ingresa tu ID y nombre.');
+    }
+});
 
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(track => track.stop());
-    cameraStream = null;
-    video.style.display = 'none';
-    video.srcObject = null;
-  } else {
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        cameraStream = stream;
-        video.srcObject = stream;
-        video.style.display = 'block';
-      })
-      .catch(err => {
-        console.error("No se pudo acceder a la cámara", err);
-      });
-  }
-}
+// Enviar Zumbido
+buzzBtn.addEventListener('click', () => {
+    conn.send({ type: "buzz", data: true });
+});
 
-function capturePhoto() {
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const context = canvas.getContext('2d');
+// Mostrar/Ocultar Cámara
+focusBtn.addEventListener('click', () => {
+    if (cameraContainer.style.display === "none") {
+        cameraContainer.style.display = "block";
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.srcObject = stream;
+            })
+            .catch((err) => console.log("Error accediendo a la cámara: " + err));
+    } else {
+        cameraContainer.style.display = "none";
+        video.srcObject.getTracks().forEach(track => track.stop());
+    }
+});
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+// Capturar Foto
+captureBtn.addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Aquí podrías enviar la imagen por PeerJS si quieres
 
-  canvas.toBlob(blob => {
-    blob.arrayBuffer().then(buffer => {
-      conn.send({ type: "img", value: buffer });
-      showImage(buffer, `Yo (${myName})`);
-    });
-  }, 'image/jpeg');
-}
-
-function showImage(buffer, sender) {
-  const blob = new Blob([buffer]);
-  const url = URL.createObjectURL(blob);
-  const img = document.createElement('img');
-  img.src = url;
-  img.style.maxWidth = "100%";
-  img.style.maxHeight = "200px";
-
-  const container = document.createElement('div');
-  container.innerHTML = `<strong>${sender}:</strong><br>`;
-  container.appendChild(img);
-
-  const msgBox = document.getElementById('messages');
-  msgBox.appendChild(container);
-  msgBox.scrollTop = msgBox.scrollHeight;
-}
-
-function sendBuzz() {
-  if (conn) {
-    conn.send({ type: "buzz" });
-    // Ya no se ejecuta la vibración aquí, solo se envía el zumbido.
-  }
-}
-
-function triggerBuzz() {
-  const chatSection = document.getElementById('chat-section');
-  chatSection.classList.add('shake');
-  // Solo se ejecuta la vibración si estamos en el receptor del mensaje de zumbido.
-  if (navigator.vibrate) navigator.vibrate([200, 50, 200]);
-  setTimeout(() => chatSection.classList.remove('shake'), 300);
-}
+    console.log("Foto Capturada");
+});
