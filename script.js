@@ -147,6 +147,6 @@ function triggerBuzz() {
   const chatSection = document.getElementById('chat-section');
   chatSection.classList.add('shake');
   // Solo se ejecuta la vibración si estamos en el receptor del mensaje de zumbido.
-  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  if (navigator.vibrate) navigator.vibrate([200, 50, 200]);
   setTimeout(() => chatSection.classList.remove('shake'), 300);
 }
