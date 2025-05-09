@@ -7,6 +7,7 @@ let cameraOpen = false;
 // Obtener los elementos del DOM
 const inicioDiv = document.getElementById("inicio");
 const chatContainer = document.getElementById("chat-container");
+const peerIdContainer = document.getElementById("peer-id-container");
 const messagesContainer = document.getElementById("messages-container");
 const messageInput = document.getElementById("message-input");
 const sendMessageBtn = document.getElementById("send-message");
@@ -27,6 +28,7 @@ document.getElementById("start-chat").addEventListener("click", () => {
     // Validar si los campos no están vacíos antes de continuar
     if (userId && userName) {
         inicioDiv.style.display = "none";
+        peerIdContainer.style.display = "block"; // Mostrar campo para ID del otro usuario
         chatContainer.style.display = "block";
         
         peer.on("open", (id) => {
@@ -38,7 +40,30 @@ document.getElementById("start-chat").addEventListener("click", () => {
     }
 });
 
-// Función para enviar un mensaje
+// Función para conectar con el otro usuario usando la ID proporcionada
+document.getElementById("connect-btn").addEventListener("click", () => {
+    otherUserId = document.getElementById("other-user-id").value;
+    if (otherUserId) {
+        const conn = peer.connect(otherUserId);
+        conn.on("open", () => {
+            console.log(`Conectado con ${otherUserId}`);
+            // Ahora el chat está listo para enviar mensajes
+        });
+        conn.on("data", (data) => {
+            if (data.type === "message") {
+                const msgElem = document.createElement("div");
+                const time = new Date();
+                msgElem.innerHTML = `<strong>${data.user}:</strong> ${data.message} <div class="message-time">${time.toLocaleString()}</div>`;
+                messagesContainer.appendChild(msgElem);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        });
+    } else {
+        alert("Por favor, ingresa la ID del otro usuario.");
+    }
+});
+
+// Enviar un mensaje
 function sendMessage(message) {
     if (message.trim()) {
         const msgElem = document.createElement("div");
@@ -48,22 +73,6 @@ function sendMessage(message) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 }
-
-// Escuchar la llegada de mensajes
-peer.on("connection", (conn) => {
-    otherUserId = conn.peer;
-    console.log("Conectado con " + otherUserId);
-    
-    conn.on("data", (data) => {
-        if (data.type === "message") {
-            const msgElem = document.createElement("div");
-            const time = new Date();
-            msgElem.innerHTML = `<strong>${data.user}:</strong> ${data.message} <div class="message-time">${time.toLocaleString()}</div>`;
-            messagesContainer.appendChild(msgElem);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-    });
-});
 
 // Enviar un mensaje a otro usuario
 sendMessageBtn.addEventListener("click", () => {
