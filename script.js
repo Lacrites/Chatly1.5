@@ -52,7 +52,7 @@ function setupConnection() {
     } else if (data.type === "msg") {
       addMessage(`${remoteName}: ${data.value}`);
     } else if (data.type === "buzz") {
-      triggerBuzz();
+      triggerBuzz();  // Solo el receptor ejecutará esta función
     } else if (data.type === "img") {
       showImage(data.value, remoteName);
     }
@@ -139,13 +139,14 @@ function showImage(buffer, sender) {
 function sendBuzz() {
   if (conn) {
     conn.send({ type: "buzz" });
-    triggerBuzz();
+    // Ya no se ejecuta la vibración aquí, solo se envía el zumbido.
   }
 }
 
 function triggerBuzz() {
   const chatSection = document.getElementById('chat-section');
   chatSection.classList.add('shake');
+  // Solo se ejecuta la vibración si estamos en el receptor del mensaje de zumbido.
   if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
   setTimeout(() => chatSection.classList.remove('shake'), 300);
 }
