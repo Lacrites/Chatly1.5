@@ -7,32 +7,45 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Pantalla de Inicio -->
+    <!-- Pantalla de inicio -->
     <div id="inicio">
-        <h1>Bienvenido a Chatly v1.0</h1>
-        <input type="text" id="user-id" placeholder="ID de Usuario" />
-        <input type="text" id="user-name" placeholder="Nombre de Usuario" />
+        <h1>Bienvenido a Chatly</h1>
+        <p>Por favor, ingresa tu ID y nombre para comenzar.</p>
+        <input type="text" id="user-id" placeholder="Tu ID">
+        <input type="text" id="user-name" placeholder="Tu Nombre">
         <button id="start-chat">Iniciar Chat</button>
     </div>
 
-    <!-- Pantalla de Chat -->
-    <div id="chat-container" style="display:none;">
-        <div id="peer-id-container">
-            <input type="text" id="other-user-id" placeholder="ID del otro usuario" />
-            <button id="connect-btn">Conectar</button>
-        </div>
-        <div id="messages-container"></div>
-        <div id="typing-status"></div>
-        <input type="text" id="message-input" placeholder="Escribe un mensaje..." />
-        <button id="send-message">Enviar Mensaje</button>
-        <button id="send-photo">Enviar Foto</button>
-        <button id="location-btn">Compartir Ubicación</button>
-        <button id="distance-btn" disabled>Calcular Distancia</button>
-        <button id="buzz-btn">Zumbido</button>
-        <button id="camera-btn">Enfocar Momento</button>
+    <!-- Pantalla de conexión -->
+    <div id="peer-id-container" style="display:none;">
+        <h2>Conéctate con otro usuario</h2>
+        <p>Tu ID: <span id="user-id-display"></span></p>
+        <p>Tu Nombre: <span id="user-name-display"></span></p>
+        <input type="text" id="other-user-id" placeholder="ID del otro usuario">
+        <button id="connect-btn">Conectar</button>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.3.2/dist/peerjs.min.js"></script>
+    <!-- Chat -->
+    <div id="chat-container" style="display:none;">
+        <h2>Chat</h2>
+        <div id="message-box" style="height: 300px; overflow-y: auto;"></div>
+        <div>
+            <textarea id="message-input" placeholder="Escribe tu mensaje..." rows="3"></textarea>
+            <button id="send-message-btn">Enviar Mensaje</button>
+            <button id="send-image-btn">Enviar Imagen</button>
+        </div>
+        <div>
+            <button id="focus-button">Enfocar momento</button>
+            <video id="video" style="display:none; width: 200px; height: 200px;" autoplay></video>
+        </div>
+        <div>
+            <button id="share-location">Compartir Ubicación</button>
+            <button id="calculate-distance" disabled>Calcular Distancia</button>
+        </div>
+        <div id="notification" style="color: red; font-weight: bold;"></div>
+    </div>
+
+    <script src="https://cdn.peerjs.com/peerjs.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
