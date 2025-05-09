@@ -4,6 +4,9 @@ let localStream;
 let remoteStream;
 let cameraOpen = false;
 
+let userLocation = null;
+let otherUserLocation = null;
+
 // Obtener los elementos del DOM
 const inicioDiv = document.getElementById("inicio");
 const chatContainer = document.getElementById("chat-container");
@@ -17,9 +20,6 @@ const distanceBtn = document.getElementById("distance-btn");
 const buzzBtn = document.getElementById("buzz-btn");
 const cameraBtn = document.getElementById("camera-btn");
 const typingStatus = document.getElementById("typing-status");
-
-let userLocation = null;
-let otherUserLocation = null;
 
 document.getElementById("start-chat").addEventListener("click", () => {
     userId = document.getElementById("user-id").value;
@@ -49,6 +49,8 @@ document.getElementById("connect-btn").addEventListener("click", () => {
             console.log(`Conectado con ${otherUserId}`);
             // Ahora el chat está listo para enviar mensajes
         });
+        
+        // Escuchar mensajes recibidos del otro usuario
         conn.on("data", (data) => {
             if (data.type === "message") {
                 const msgElem = document.createElement("div");
@@ -149,3 +151,20 @@ recibirUbicacionDeOtroUsuario(34.052235, -118.243683); // Ejemplo de ubicación 
 buzzBtn.addEventListener("click", () => {
     navigator.vibrate(100);  // Vibración corta
 });
+
+// Configurar el recibir datos de conexión
+peer.on("connection", (conn) => {
+    console.log(`Conexión establecida con ${conn.peer}`);
+    
+    // Manejar los datos recibidos
+    conn.on("data", (data) => {
+        if (data.type === "message") {
+            const msgElem = document.createElement("div");
+            const time = new Date();
+            msgElem.innerHTML = `<strong>${data.user}:</strong> ${data.message} <div class="message-time">${time.toLocaleString()}</div>`;
+            messagesContainer.appendChild(msgElem);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    });
+});
+
