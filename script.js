@@ -1,137 +1,142 @@
-// Inicialización de variables
-const startScreen = document.getElementById('start-screen');
-const chatContainer = document.getElementById('chat-container');
-const messageInput = document.getElementById('message-input');
-const sendBtn = document.getElementById('send-btn');
-const buzzBtn = document.getElementById('buzz-btn');
-const messagesContainer = document.getElementById('messages');
-const typingIndicator = document.getElementById('typing-indicator');
-const focusBtn = document.getElementById('focus-btn');
-const video = document.getElementById('video');
-const captureBtn = document.getElementById('capture-btn');
-const cameraContainer = document.getElementById('camera-container');
-const userIdInput = document.getElementById('user-id');
-const userNameInput = document.getElementById('user-name');
+const peer = new Peer();
+let userId, userName, otherUserId;
+let localStream;
+let remoteStream;
+let cameraOpen = false;
 
-// Variables de PeerJS
-let peer, conn;
+// Obtener los elementos del DOM
+const inicioDiv = document.getElementById("inicio");
+const chatContainer = document.getElementById("chat-container");
+const messagesContainer = document.getElementById("messages-container");
+const messageInput = document.getElementById("message-input");
+const sendMessageBtn = document.getElementById("send-message");
+const sendPhotoBtn = document.getElementById("send-photo");
+const locationBtn = document.getElementById("location-btn");
+const distanceBtn = document.getElementById("distance-btn");
+const buzzBtn = document.getElementById("buzz-btn");
+const cameraBtn = document.getElementById("camera-btn");
+const typingStatus = document.getElementById("typing-status");
 
-// Detectar cuando el usuario está escribiendo
-let typingTimeout;
-messageInput.addEventListener('input', () => {
-    // Enviar que el usuario está escribiendo
-    conn.send({ type: "typing", data: true });
+let userLocation = null;
+let otherUserLocation = null;
+
+document.getElementById("start-chat").addEventListener("click", () => {
+    userId = document.getElementById("user-id").value;
+    userName = document.getElementById("user-name").value;
     
-    // Mostrar el indicador de "escribiendo..."
-    typingIndicator.style.display = "block";
-    
-    // Ocultar después de 1 segundo de inactividad
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-        typingIndicator.style.display = "none";
-    }, 1000);
+    // Validar si los campos no están vacíos antes de continuar
+    if (userId && userName) {
+        inicioDiv.style.display = "none";
+        chatContainer.style.display = "block";
+        
+        peer.on("open", (id) => {
+            userId = id;
+            console.log("ID de usuario: " + userId);
+        });
+    } else {
+        alert("Por favor, ingresa un ID y un nombre.");
+    }
 });
 
-// Función para enviar el mensaje
-sendBtn.addEventListener('click', () => {
-    sendMessage(messageInput.value);
-    messageInput.value = ''; // Limpiar el campo de entrada
-});
-
-// Función para enviar el mensaje y agregarlo al chat
+// Función para enviar un mensaje
 function sendMessage(message) {
-    const messageTime = new Date();
-    const formattedTime = messageTime.toLocaleString();  // Ej. 10:30 AM - 09/05/2025
-    
-    const messageElement = document.createElement("div");
-    messageElement.classList.add("message");
-    
-    const content = document.createElement("div");
-    content.classList.add("message-content");
-    content.textContent = message;
-
-    const time = document.createElement("div");
-    time.classList.add("message-time");
-    time.textContent = formattedTime;
-
-    messageElement.appendChild(content);
-    messageElement.appendChild(time);
-    
-    messagesContainer.appendChild(messageElement);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;  // Desplazar hacia abajo
+    if (message.trim()) {
+        const msgElem = document.createElement("div");
+        const time = new Date();
+        msgElem.innerHTML = `<strong>Tu:</strong> ${message} <div class="message-time">${time.toLocaleString()}</div>`;
+        messagesContainer.appendChild(msgElem);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
 }
 
-// Recibir datos del otro usuario (mensaje o "escribiendo...")
-conn.on('data', (data) => {
-    if (data.type === "typing" && data.data) {
-        typingIndicator.style.display = "block";
-    } else if (data.type === "message") {
-        sendMessage(data.message);
-    }
-});
-
-// Función para iniciar la conexión cuando el usuario presiona "Iniciar"
-document.getElementById('start-btn').addEventListener('click', () => {
-    const userId = userIdInput.value;
-    const userName = userNameInput.value;
+// Escuchar la llegada de mensajes
+peer.on("connection", (conn) => {
+    otherUserId = conn.peer;
+    console.log("Conectado con " + otherUserId);
     
-    if (userId && userName) {
-        startScreen.style.display = "none";
-        chatContainer.style.display = "block";
+    conn.on("data", (data) => {
+        if (data.type === "message") {
+            const msgElem = document.createElement("div");
+            const time = new Date();
+            msgElem.innerHTML = `<strong>${data.user}:</strong> ${data.message} <div class="message-time">${time.toLocaleString()}</div>`;
+            messagesContainer.appendChild(msgElem);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    });
+});
 
-        // Crear el objeto Peer
-        peer = new Peer(userId);
-        
-        peer.on('open', (id) => {
-            console.log("Conexión establecida. Tu ID: " + id);
-        });
+// Enviar un mensaje a otro usuario
+sendMessageBtn.addEventListener("click", () => {
+    const message = messageInput.value;
+    sendMessage(message);
+    const conn = peer.connect(otherUserId);
+    conn.send({ type: "message", user: userName, message });
+    messageInput.value = "";
+});
 
-        peer.on('connection', (connection) => {
-            conn = connection;
-            conn.on('open', () => {
-                console.log('Conexión con el otro usuario establecida');
-            });
-        });
-
-        // Conectar con el otro usuario
-        peer.on('call', (call) => {
-            // Responder al llamado (si tienes video)
-            call.answer(window.localStream);
-        });
+// Compartir la ubicación
+function compartirUbicacion() {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                userLocation = { lat: position.coords.latitude, lon: position.coords.longitude };
+                const locationLink = `https://www.google.com/maps?q=${userLocation.lat},${userLocation.lon}`;
+                localStorage.setItem("userLocation", JSON.stringify(userLocation));
+                sendMessage(`Mi ubicación: ${locationLink}`);
+                habilitarCalcularDistancia();
+            },
+            (error) => {
+                sendMessage("No se pudo obtener la ubicación.");
+            }
+        );
     } else {
-        alert('Por favor ingresa tu ID y nombre.');
+        alert("La geolocalización no está disponible.");
+    }
+}
+
+// Habilitar el botón de calcular distancia si ambos comparten ubicación
+function habilitarCalcularDistancia() {
+    const otherUserLocation = JSON.parse(localStorage.getItem("otherUserLocation"));
+    if (userLocation && otherUserLocation) {
+        distanceBtn.disabled = false;
+    }
+}
+
+// Calcular la distancia entre dos puntos
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const φ1 = lat1 * (Math.PI / 180);
+    const φ2 = lat2 * (Math.PI / 180);
+    const Δφ = (lat2 - lat1) * (Math.PI / 180);
+    const Δλ = (lon2 - lon1) * (Math.PI / 180);
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+// Calcular distancia entre ambos usuarios
+distanceBtn.addEventListener("click", () => {
+    const otherUserLocation = JSON.parse(localStorage.getItem("otherUserLocation"));
+    if (userLocation && otherUserLocation) {
+        const distancia = calcularDistancia(userLocation.lat, userLocation.lon, otherUserLocation.lat, otherUserLocation.lon);
+        sendMessage(`La distancia entre las ubicaciones es: ${distancia.toFixed(2)} km`);
     }
 });
 
-// Enviar Zumbido
-buzzBtn.addEventListener('click', () => {
-    conn.send({ type: "buzz", data: true });
-});
+// Recibir la ubicación del otro usuario
+function recibirUbicacionDeOtroUsuario(lat, lon) {
+    otherUserLocation = { lat, lon };
+    localStorage.setItem("otherUserLocation", JSON.stringify(otherUserLocation));
+    habilitarCalcularDistancia();
+}
 
-// Mostrar/Ocultar Cámara
-focusBtn.addEventListener('click', () => {
-    if (cameraContainer.style.display === "none") {
-        cameraContainer.style.display = "block";
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then((stream) => {
-                video.srcObject = stream;
-            })
-            .catch((err) => console.log("Error accediendo a la cámara: " + err));
-    } else {
-        cameraContainer.style.display = "none";
-        video.srcObject.getTracks().forEach(track => track.stop());
-    }
-});
+// Evento para compartir ubicación
+locationBtn.addEventListener("click", compartirUbicacion);
 
-// Capturar Foto
-captureBtn.addEventListener('click', () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Aquí podrías enviar la imagen por PeerJS si quieres
+// Simulación de recibir la ubicación de otro usuario (esto en la práctica se recibiría por mensajes)
+recibirUbicacionDeOtroUsuario(34.052235, -118.243683); // Ejemplo de ubicación (otro usuario)
 
-    console.log("Foto Capturada");
+// Función de zumbido
+buzzBtn.addEventListener("click", () => {
+    navigator.vibrate(100);  // Vibración corta
 });
